@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Road to April 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: training-log sheet. Header with countdown, check-in card + scoreboard side by side, weight chart, then the full Nov–Apr log grid (weeks as rows, Saturday weigh-in column). */
+:root{
+  --bg:#edf0f3; --surface:#ffffff; --sunk:#e3e8ed; --ink:#141b24; --muted:#5a6572; --line:#d3d9e0;
+  --hunter:#2650c8; --hunter-soft:#dbe3fa; --chance:#c9661a; --chance-soft:#f8e3d0; --good:#1d8148; --bad:#b4342c;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1318; --surface:#171f28; --sunk:#111820; --ink:#e6ebf0; --muted:#93a0ad; --line:#2a3541;
+  --hunter:#7397ff; --hunter-soft:#1f2c4f; --chance:#f2a05a; --chance-soft:#46301c; --good:#4cc283; --bad:#f07b72; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1318; --surface:#171f28; --sunk:#111820; --ink:#e6ebf0; --muted:#93a0ad; --line:#2a3541;
+  --hunter:#7397ff; --hunter-soft:#1f2c4f; --chance:#f2a05a; --chance-soft:#46301c; --good:#4cc283; --bad:#f07b72; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 56px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance;line-height:1}
+h2{font-size:1.5rem;text-transform:uppercase;letter-spacing:.04em}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--hunter);outline-offset:2px}
+
+/* header */
+header{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:end;justify-content:space-between}
+header h1{font-size:clamp(2.6rem,8vw,4.4rem);font-weight:800;text-transform:uppercase}
+header h1 .h{color:var(--hunter)} header h1 .c{color:var(--chance)}
+.sub{color:var(--muted);margin-top:6px}
+.count{min-width:min(100%,300px);flex:1 1 260px;max-width:380px}
+.count .big{font-family:var(--display);font-size:2.4rem;font-weight:700;line-height:1}
+.count .big small{font-size:1rem;color:var(--muted);font-weight:600;margin-left:6px}
+.bar{height:10px;background:var(--sunk);border-radius:5px;margin-top:10px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--hunter),var(--chance))}
+.ticks{display:flex;justify-content:space-between;margin-top:4px;font-size:.75rem;color:var(--muted)}
+
+.top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px}
+@media (max-width:820px){.top{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;min-width:0}
+
+/* check-in */
+.who{display:inline-flex;background:var(--sunk);border-radius:10px;padding:4px;gap:4px;border:1px solid var(--line)}
+.who button{border:0;background:transparent;padding:8px 18px;border-radius:7px;font-weight:600;cursor:pointer}
+.who button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.who button[data-p="hunter"][aria-pressed="true"]{color:var(--hunter)}
+.who button[data-p="chance"][aria-pressed="true"]{color:var(--chance)}
+.checkhead{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
+.datenav{display:flex;align-items:center;gap:8px;margin:18px 0 14px}
+.datenav h3{font-family:var(--display);font-size:1.9rem;font-weight:700;margin:0;flex:1;line-height:1.05}
+.datenav h3 small{display:block;font-family:var(--body);font-size:.8rem;color:var(--muted);font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.navbtn{width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:1.1rem}
+.navbtn:disabled{opacity:.35;cursor:default}
+.todaybtn{border:1px solid var(--line);background:transparent;border-radius:9px;padding:0 12px;height:38px;cursor:pointer;font-size:.85rem;font-weight:600}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tog{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:16px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;transition:background .15s,border-color .15s}
+.tog b{font-family:var(--display);font-size:1.5rem;text-transform:uppercase;letter-spacing:.03em;line-height:1}
+.tog span{font-size:.85rem;color:var(--muted)}
+.tog .glyph{width:26px;height:26px;margin-bottom:6px;border:2px solid currentColor;color:var(--muted)}
+.tog .glyph.sq{border-radius:5px} .tog .glyph.ci{border-radius:50%}
+.tog[aria-pressed="true"]{border-color:var(--pc);background:var(--psoft)}
+.tog[aria-pressed="true"] .glyph{background:var(--pc);border-color:var(--pc)}
+.tog[aria-pressed="true"] span{color:var(--ink)}
+.tog:disabled{cursor:not-allowed;opacity:.5}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.field input,.field textarea{font:inherit;color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:10px 12px;width:100%}
+.field textarea{resize:vertical;min-height:44px}
+.weigh{margin-top:14px;padding:14px;border-radius:12px;border:1px dashed var(--pc);background:var(--psoft)}
+.weigh .row{display:flex;gap:10px;align-items:center;margin-top:8px}
+.weigh input{font-family:var(--mono);font-size:1.4rem;width:9ch;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.nextweigh{margin-top:14px;font-size:.9rem;color:var(--muted)}
+.other{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:.9rem;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{font-size:.85rem;color:var(--muted);min-height:1.3em;margin-top:10px}
+.status.err{color:var(--bad)}
+
+/* scoreboard */
+.board{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:14px}
+.col{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.col+.col{border-left:1px solid var(--line)}
+.col h4{margin:0;font-family:var(--display);font-size:1.4rem;text-transform:uppercase;letter-spacing:.04em}
+.col.hunter h4{color:var(--hunter)} .col.chance h4{color:var(--chance)}
+.stat{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.stat:last-child{border-bottom:0;padding-bottom:0}
+.stat .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.25rem;font-weight:600}
+.stat .v small{font-size:.75rem;color:var(--muted);font-weight:500}
+.down{color:var(--good)} .up{color:var(--bad)}
+.team{margin-top:14px;font-size:.9rem;color:var(--muted)}
+.team b{color:var(--ink);font-family:var(--mono)}
+.settings{margin-top:16px}
+.settings summary{cursor:pointer;font-weight:600;font-size:.9rem}
+.setgrid{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px 10px;align-items:center;margin-top:10px;font-size:.9rem}
+.setgrid input{font-family:var(--mono);width:100%;min-width:0;padding:7px 9px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--ink)}
+
+/* chart */
+.chartwrap{overflow-x:auto}
+.chartwrap svg{display:block;width:100%;min-width:520px;height:auto}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+
+/* log grid */
+.loghead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:end}
+.key{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);align-items:center}
+.key .m{display:inline-block;width:10px;height:10px;vertical-align:-1px;margin-right:5px;background:var(--muted)}
+.key .m.ci{border-radius:50%}
+.gridwrap{overflow-x:auto;margin-top:14px}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(40px,1fr)) minmax(62px,1.2fr);gap:4px;min-width:360px}
+.gh{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:center;padding-bottom:4px;font-weight:600}
+.cell{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 4px 6px;min-height:58px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.cell.out{background:transparent;border-style:dashed;opacity:.35;cursor:default}
+.cell.future{background:var(--sunk);cursor:default}
+.cell.today{border-color:var(--ink);border-width:2px}
+.cell.sel{box-shadow:0 0 0 2px var(--pc,var(--hunter))}
+.cell .dn{font-family:var(--mono);font-size:.72rem;color:var(--muted);line-height:1}
+.cell .dn.mo{color:var(--ink);font-weight:600}
+.mk{display:flex;gap:3px}
+.mk i{width:9px;height:9px;border:1.5px solid var(--line);display:block}
+.mk i.l{border-radius:2px} .mk i.c{border-radius:50%}
+.mk.hunter i.on{background:var(--hunter);border-color:var(--hunter)}
+.mk.chance i.on{background:var(--chance);border-color:var(--chance)}
+.wcell{border-radius:8px;background:var(--sunk);border:1px solid var(--line);padding:5px 6px;display:flex;flex-direction:column;justify-content:center;gap:2px;font-family:var(--mono);font-size:.72rem;font-variant-numeric:tabular-nums}
+.wcell .h{color:var(--hunter)} .wcell .c{color:var(--chance)}
+.wcell .e{color:var(--muted)}
+.foot{font-size:.85rem;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media (max-width:440px){.col{padding:12px}.stat .v{font-size:1.05rem}.tog b{font-size:1.3rem}}
+
+html,body{margin:0}
+[hidden]{display:none!important}
+.gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px;overflow:auto}
+.gate .box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px}
+.gate h1{font-family:var(--display);font-size:2.4rem;font-weight:800;text-transform:uppercase;line-height:1;margin:0}
+.gate h1 .h{color:var(--hunter)} .gate h1 .c{color:var(--chance)}
+.gate label{display:flex;flex-direction:column;gap:6px}
+.gate input{font:inherit;color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.gate .go{border:0;border-radius:9px;padding:12px;font-weight:700;background:var(--ink);color:var(--surface);cursor:pointer;font-size:1rem}
+.gate .go:disabled{opacity:.6;cursor:default}
+.gate .err{color:var(--bad);font-size:.9rem;min-height:1.2em}
+.gate p{margin:0;color:var(--muted);font-size:.95rem}
+.gate code{font-family:var(--mono);font-size:.85em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.acct{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+.linkbtn{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:.85rem;padding:0}
+</style>
+</head>
+<body>
+
+
+
+<div class="gate" id="gate" hidden>
+  <form class="box" id="loginForm" novalidate>
+    <h1><span class="h">Hunter</span> &amp; <span class="c">Chance</span><br>Road to April 1</h1>
+    <p id="gateMsg">Sign in to check in.</p>
+    <label><span class="label">Email</span><input id="loginEmail" type="email" autocomplete="username" required></label>
+    <label><span class="label">Password</span><input id="loginPass" type="password" autocomplete="current-password" required></label>
+    <button class="go" id="loginBtn" type="submit">Sign in</button>
+    <div class="err" id="loginErr" role="alert"></div>
+  </form>
+</div>
+<div class="gate" id="setup" hidden>
+  <div class="box">
+    <h1>Almost ready</h1>
+    <p>This page isn't connected to its database yet. Open <code>index.html</code>, paste your Firebase config into the <code>FIREBASE_CONFIG</code> block at the bottom of the file, and upload it again.</p>
+  </div>
+</div>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="h">Hunter</span> &amp; <span class="c">Chance</span><br>Road to April 1</h1>
+      <div class="sub">Daily check-ins, Saturday morning weigh-ins.</div>
+    </div>
+    <div class="count">
+      <div class="label" id="dayLabel">Day 1 of 150</div>
+      <div class="big" id="daysLeft">149<small>days left</small></div>
+      <div class="bar"><i id="barFill" style="width:0%"></i></div>
+      <div class="ticks"><span>Nov 3</span><span>Apr 1</span></div>
+    </div>
+  </header>
+
+  <div class="top">
+    <section class="panel" id="checkin" aria-labelledby="ciTitle">
+      <div class="checkhead">
+        <h2 id="ciTitle">Check in</h2>
+        <div class="who" role="group" aria-label="Checking in as">
+          <button type="button" id="whoHunter" data-p="hunter" aria-pressed="true">Hunter</button>
+          <button type="button" id="whoChance" data-p="chance" aria-pressed="false">Chance</button>
+        </div>
+      </div>
+      <div class="datenav">
+        <button type="button" class="navbtn" id="prevDay" aria-label="Previous day">‹</button>
+        <h3 id="selDate">Tuesday<small>Nov 3</small></h3>
+        <button type="button" class="todaybtn" id="goToday">Today</button>
+        <button type="button" class="navbtn" id="nextDay" aria-label="Next day">›</button>
+      </div>
+      <div class="toggles">
+        <button type="button" class="tog" id="togLift" aria-pressed="false"><i class="glyph sq"></i><b>Lifted</b><span>Weight session</span></button>
+        <button type="button" class="tog" id="togCardio" aria-pressed="false"><i class="glyph ci"></i><b>Cardio</b><span>Cardio session</span></button>
+      </div>
+      <div id="weighBox" class="weigh" hidden>
+        <div class="label" id="weighLabel">Saturday weigh-in</div>
+        <div class="row"><input id="weightIn" type="number" inputmode="decimal" step="0.1" min="50" max="600" placeholder="000.0" aria-label="Weight in pounds"><span>lbs</span></div>
+      </div>
+      <div id="nextWeigh" class="nextweigh"></div>
+      <div class="field">
+        <label class="label" for="noteIn">Note</label>
+        <textarea id="noteIn" rows="2" placeholder="Push day, 30 min stairmaster, felt strong…"></textarea>
+      </div>
+      <div class="other" id="otherLine"></div>
+      <div class="status" id="status" role="status"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="sbTitle">
+      <h2 id="sbTitle">Scoreboard</h2>
+      <div class="board" id="board"></div>
+      <div class="team" id="team"></div>
+      <details class="settings">
+        <summary>Starting and goal weights</summary>
+        <div class="setgrid">
+          <span></span><span class="label">Start</span><span class="label">Goal</span>
+          <span style="color:var(--hunter);font-weight:600">Hunter</span>
+          <input id="set_hunter_start" type="number" step="0.1" inputmode="decimal" placeholder="lbs" aria-label="Hunter starting weight">
+          <input id="set_hunter_goal" type="number" step="0.1" inputmode="decimal" placeholder="lbs" aria-label="Hunter goal weight">
+          <span style="color:var(--chance);font-weight:600">Chance</span>
+          <input id="set_chance_start" type="number" step="0.1" inputmode="decimal" placeholder="lbs" aria-label="Chance starting weight">
+          <input id="set_chance_goal" type="number" step="0.1" inputmode="decimal" placeholder="lbs" aria-label="Chance goal weight">
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="wtTitle">
+    <h2 id="wtTitle">Weight trend</h2>
+    <div class="chartwrap" id="chart"></div>
+    <div class="legend"><span><i style="background:var(--hunter)"></i>Hunter</span><span><i style="background:var(--chance)"></i>Chance</span><span><i style="background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 7px)"></i>Goal</span></div>
+  </section>
+
+  <section class="panel" aria-labelledby="logTitle">
+    <div class="loghead">
+      <h2 id="logTitle">The log</h2>
+      <div class="key"><span><i class="m"></i>Lift</span><span><i class="m ci"></i>Cardio</span><span>Top row Hunter, bottom row Chance. Tap a day to edit it.</span></div>
+    </div>
+    <div class="gridwrap"><div class="grid" id="grid"></div></div>
+  </section>
+
+  <div class="foot acct"><span>Nov 3, 2026 → Apr 1, 2027 · 150 days</span><span id="acctEmail"></span><button type="button" class="linkbtn" id="signOut" hidden>Sign out</button></div>
+</div>
+
+<!-- ============ PASTE YOUR FIREBASE CONFIG HERE ============ -->
+<script>
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCgb9J3j8zHHPaN_OHEwemzJPb6vve9zdw",
+  authDomain: "day-wl.firebaseapp.com",
+  projectId: "day-wl",
+  storageBucket: "day-wl.firebasestorage.app",
+  messagingSenderId: "1061568466923",
+  appId: "1:1061568466923:web:186cfb25c1190bf85513ae"
+};
+</script>
+<!-- ========================================================= -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+(() => {
+const PEOPLE = [{id:'hunter',name:'Hunter'},{id:'chance',name:'Chance'}];
+const NAME = {hunter:'Hunter',chance:'Chance'};
+const START = new Date(2026,10,3), END = new Date(2027,3,1);
+const DAY = 86400000;
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WD = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const key = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const parse = s => { const [a,b,c] = s.split('-').map(Number); return new Date(a,b-1,c); };
+const add = (d,n) => new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+const today = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+const idx = d => Math.round((d - START)/DAY);
+const TOTAL = idx(END) + 1;
+const inRange = d => d >= START && d <= END;
+const isWeighDay = d => inRange(d) && (d.getDay() === 6 || +d === +END);
+const short = d => MON[d.getMonth()]+' '+d.getDate();
+const fmt = n => (Math.round(n*10)/10).toFixed(1);
+const $ = id => document.getElementById(id);
+
+const clampDay = d => d < START ? START : d > END ? END : d;
+const lastAllowed = () => { const t = today(); return t > END ? END : t; };
+
+let me = 'hunter';
+try { const s = localStorage.getItem('rta-me'); if (s === 'hunter' || s === 'chance') me = s; } catch(e) {}
+
+const state = { checkins:{}, weighins:{}, settings:{}, sel: key(clampDay(today())) };
+let db = null, readOnly = false;
+
+/* ---------- status + writes ---------- */
+function status(msg, err){ const el = $('status'); el.textContent = msg || ''; el.classList.toggle('err', !!err); }
+const chains = {};
+function write(path, data){
+  if (!db){ status('Not saved: sign in first.', true); return; }
+  status('Saving…');
+  const prev = chains[path] || Promise.resolve();
+  const p = prev.then(() => data === null ? db.doc(path).delete() : db.doc(path).set(data))
+    .then(() => status('Saved'), e => {
+      if (e && e.code === 'permission-denied'){ readOnly = true; status('Couldn’t save: this account isn’t on the allowed list in the Firestore rules.', true); render(); }
+      else if (e && e.code === 'resource-exhausted') status('Couldn’t save: today’s free quota is used up. Try again tomorrow.', true);
+      else status('Couldn’t save. Check your connection and try again.', true);
+    });
+  chains[path] = p.catch(()=>{});
+}
+
+/* ---------- data accessors ---------- */
+const ci = (p, date) => state.checkins[p+'_'+date] || {person:p, date, lift:false, cardio:false, note:''};
+const wi = (p, date) => state.weighins[p+'_'+date];
+function saveCheckin(p, date, patch){
+  const id = p+'_'+date;
+  const body = Object.assign({}, ci(p,date), patch, {person:p, date, updatedAt:new Date().toISOString()});
+  state.checkins[id] = body; render();
+  write('checkins/'+id, body);
+}
+function saveWeight(p, date, val){
+  const id = p+'_'+date;
+  if (val === null){ delete state.weighins[id]; render(); write('weighins/'+id, null); return; }
+  const body = {person:p, date, weight:val, updatedAt:new Date().toISOString()};
+  state.weighins[id] = body; render();
+  write('weighins/'+id, body);
+}
+function saveSetting(p, field, val){
+  const cur = Object.assign({}, state.settings[p] || {});
+  if (val === null) delete cur[field]; else cur[field] = val;
+  state.settings[p] = cur; render();
+  write('settings/'+p, cur);
+}
+function weightSeries(p){
+  const pts = Object.values(state.weighins).filter(w => w.person === p && typeof w.weight === 'number')
+    .map(w => ({d: parse(w.date), w: w.weight})).sort((a,b) => a.d - b.d);
+  const s = state.settings[p] || {};
+  if (typeof s.start === 'number' && !pts.some(x => +x.d === +START)) pts.unshift({d: START, w: s.start, start:true});
+  return pts;
+}
+
+/* ---------- header ---------- */
+function renderHeader(){
+  const t = today();
+  const n = Math.min(Math.max(idx(t)+1, 0), TOTAL);
+  if (t > END){ $('dayLabel').textContent = 'Challenge complete'; $('daysLeft').innerHTML = '150<small>days done</small>'; }
+  else if (t < START){ $('dayLabel').textContent = 'Starts Nov 3'; $('daysLeft').innerHTML = TOTAL+'<small>days to go</small>'; }
+  else { $('dayLabel').textContent = 'Day '+n+' of '+TOTAL; const left = TOTAL - n; $('daysLeft').innerHTML = left+'<small>'+(left===1?'day':'days')+' left</small>'; }
+  $('barFill').style.width = (n/TOTAL*100).toFixed(1)+'%';
+}
+
+/* ---------- check-in panel ---------- */
+function renderCheckin(){
+  const d = parse(state.sel), p = me;
+  const pc = `var(--${p})`, ps = `var(--${p}-soft)`;
+  $('checkin').style.setProperty('--pc', pc); $('checkin').style.setProperty('--psoft', ps);
+  document.documentElement.style.setProperty('--pc', pc);
+  $('whoHunter').setAttribute('aria-pressed', p==='hunter'); $('whoChance').setAttribute('aria-pressed', p==='chance');
+  const isToday = +d === +today();
+  $('selDate').innerHTML = (isToday ? 'Today' : WD[d.getDay()]) + '<small>' + (isToday ? WD[d.getDay()]+', ' : '') + short(d) + ' · Day ' + (idx(d)+1) + '</small>';
+  $('prevDay').disabled = +d <= +START;
+  $('nextDay').disabled = +d >= +lastAllowed();
+  const c = ci(p, state.sel);
+  $('togLift').setAttribute('aria-pressed', !!c.lift);
+  $('togCardio').setAttribute('aria-pressed', !!c.cardio);
+  $('togLift').disabled = $('togCardio').disabled = readOnly;
+  $('noteIn').disabled = $('weightIn').disabled = readOnly;
+  if (document.activeElement !== $('noteIn')) $('noteIn').value = c.note || '';
+
+  const wbox = $('weighBox');
+  if (isWeighDay(d)){
+    wbox.hidden = false;
+    $('weighLabel').textContent = (+d === +END ? 'Final weigh-in · ' : 'Saturday weigh-in · ') + short(d) + ' · ' + NAME[p];
+    const w = wi(p, state.sel);
+    if (document.activeElement !== $('weightIn')) $('weightIn').value = w ? w.weight : '';
+    $('nextWeigh').textContent = '';
+  } else {
+    wbox.hidden = true;
+    let n = d; while (n <= END && !isWeighDay(n)) n = add(n,1);
+    $('nextWeigh').textContent = n <= END ? 'Next weigh-in: ' + WD[n.getDay()] + ', ' + short(n) : '';
+  }
+  const o = PEOPLE.find(x => x.id !== p).id, oc = ci(o, state.sel);
+  const bits = [];
+  if (oc.lift) bits.push('lifted'); if (oc.cardio) bits.push('did cardio');
+  const ow = wi(o, state.sel);
+  $('otherLine').innerHTML = `<span style="color:var(--${o});font-weight:600">${NAME[o]}</span><span>${bits.length ? bits.join(' and ') : 'hasn’t checked in'}${ow ? ' · weighed '+fmt(ow.weight)+' lbs' : ''}${oc.note ? ' · “'+escapeHtml(oc.note)+'”' : ''}</span>`;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+
+/* ---------- scoreboard ---------- */
+function stats(p){
+  const rows = Object.values(state.checkins).filter(c => c.person === p);
+  const lift = rows.filter(c => c.lift).length, cardio = rows.filter(c => c.cardio).length;
+  const t = today(), ws = add(t, -t.getDay()), we = add(ws, 6);
+  const wk = rows.filter(c => { const d = parse(c.date); return d >= ws && d <= we; });
+  const series = weightSeries(p);
+  const s = state.settings[p] || {};
+  const first = series[0], last = series[series.length-1];
+  return {lift, cardio, wkLift: wk.filter(c=>c.lift).length, wkCardio: wk.filter(c=>c.cardio).length,
+    start: first ? first.w : null, latest: last ? last.w : null, latestD: last ? last.d : null, goal: typeof s.goal === 'number' ? s.goal : null, n: series.length};
+}
+function renderBoard(){
+  const all = {};
+  $('board').innerHTML = PEOPLE.map(({id,name}) => {
+    const s = all[id] = stats(id);
+    let change = '<span class="v">—</span>';
+    if (s.start !== null && s.latest !== null && s.n > 1){
+      const dlt = s.latest - s.start;
+      change = `<span class="v ${dlt<0?'down':dlt>0?'up':''}">${dlt>0?'+':dlt<0?'−':''}${fmt(Math.abs(dlt))}<small> lbs</small></span>`;
+    }
+    const toGoal = (s.goal !== null && s.latest !== null) ? `<div class="stat"><span class="label">To goal</span><span class="v">${s.latest <= s.goal ? '<span class="down">Hit it</span>' : fmt(s.latest - s.goal)+'<small> lbs</small>'}</span></div>` : '';
+    return `<div class="col ${id}"><h4>${name}</h4>
+      <div class="stat"><span class="label">Lift sessions</span><span class="v">${s.lift}</span></div>
+      <div class="stat"><span class="label">Cardio sessions</span><span class="v">${s.cardio}</span></div>
+      <div class="stat"><span class="label">This week</span><span class="v">${s.wkLift}<small> L</small> ${s.wkCardio}<small> C</small></span></div>
+      <div class="stat"><span class="label">Latest</span><span class="v">${s.latest !== null ? fmt(s.latest)+'<small> lbs</small>' : '—'}</span></div>
+      <div class="stat"><span class="label">Change</span>${change}</div>${toGoal}</div>`;
+  }).join('');
+  const h = all.hunter, c = all.chance;
+  const lost = [h,c].reduce((a,s) => a + ((s.start!==null && s.latest!==null && s.n>1) ? s.start - s.latest : 0), 0);
+  $('team').innerHTML = `Together: <b>${h.lift + c.lift}</b> lift and <b>${h.cardio + c.cardio}</b> cardio sessions` + (lost ? `, <b>${fmt(Math.abs(lost))}</b> lbs ${lost > 0 ? 'down' : 'up'} combined.` : '.');
+  PEOPLE.forEach(({id}) => ['start','goal'].forEach(f => {
+    const el = $(`set_${id}_${f}`); if (document.activeElement !== el){ const v = (state.settings[id]||{})[f]; el.value = typeof v === 'number' ? v : ''; }
+    el.disabled = readOnly;
+  }));
+}
+
+/* ---------- chart ---------- */
+function renderChart(){
+  const W = 760, H = 300, L = 48, R = 64, T = 16, B = 34;
+  const series = {hunter: weightSeries('hunter'), chance: weightSeries('chance')};
+  const vals = [...series.hunter, ...series.chance].map(p => p.w);
+  PEOPLE.forEach(({id}) => { const g = (state.settings[id]||{}).goal; if (typeof g === 'number') vals.push(g); });
+  const x = d => L + (idx(d) / (TOTAL-1)) * (W - L - R);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Weekly weigh-ins for Hunter and Chance">`;
+  const months = [START, new Date(2026,11,1), new Date(2027,0,1), new Date(2027,1,1), new Date(2027,2,1), END];
+  if (!vals.length){
+    months.forEach(m => { svg += `<text x="${x(m)}" y="${H-10}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--mono)">${short(m)}</text>`; });
+    svg += `<line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="var(--line)"/>`;
+    svg += `<text x="${W/2}" y="${H/2-8}" text-anchor="middle" font-size="16" fill="var(--ink)" font-family="var(--body)" font-weight="600">Your weight lines start with the first weigh-in</text>`;
+    svg += `<text x="${W/2}" y="${H/2+16}" text-anchor="middle" font-size="13" fill="var(--muted)" font-family="var(--body)">Log weights on Saturday, Nov 7, or add starting weights in the scoreboard to begin today.</text></svg>`;
+    $('chart').innerHTML = svg; return;
+  }
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const range = Math.max(hi - lo, 4);
+  const step = range <= 12 ? 2 : range <= 30 ? 5 : 10;
+  lo = Math.floor((lo - 1) / step) * step; hi = Math.ceil((hi + 1) / step) * step;
+  const y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  for (let v = lo; v <= hi + 1e-9; v += step){
+    svg += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+    svg += `<text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--mono)">${v}</text>`;
+  }
+  months.forEach(m => {
+    svg += `<line x1="${x(m)}" x2="${x(m)}" y1="${H-B}" y2="${H-B+5}" stroke="var(--muted)"/>`;
+    svg += `<text x="${x(m)}" y="${H-10}" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--mono)">${short(m)}</text>`;
+  });
+  const tx = x(clampDay(today()));
+  if (today() <= END && today() >= START) svg += `<line x1="${tx}" x2="${tx}" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="2 4" opacity=".6"/>`;
+  const labels = [];
+  PEOPLE.forEach(({id}) => {
+    const col = `var(--${id})`;
+    const g = (state.settings[id]||{}).goal;
+    if (typeof g === 'number') svg += `<line x1="${L}" x2="${W-R}" y1="${y(g)}" y2="${y(g)}" stroke="${col}" stroke-width="1.5" stroke-dasharray="5 4" opacity=".6"/>`;
+    const pts = series[id]; if (!pts.length) return;
+    if (pts.length > 1){
+      const dstr = pts.map((p,i) => (i?'L':'M') + x(p.d).toFixed(1) + ' ' + y(p.w).toFixed(1)).join(' ');
+      const area = dstr + ` L ${x(pts[pts.length-1].d).toFixed(1)} ${H-B} L ${x(pts[0].d).toFixed(1)} ${H-B} Z`;
+      svg += `<path d="${area}" fill="${col}" opacity=".07"/>`;
+      svg += `<path d="${dstr}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+    pts.forEach((p,i) => { const lastP = i === pts.length-1;
+      svg += `<circle cx="${x(p.d)}" cy="${y(p.w)}" r="${lastP?5:3.2}" fill="${lastP?col:'var(--surface)'}" stroke="${col}" stroke-width="2"><title>${NAME[id]} · ${short(p.d)}${p.start?' (start)':''} · ${fmt(p.w)} lbs</title></circle>`; });
+    const lp = pts[pts.length-1]; labels.push({id, x: x(lp.d), y: y(lp.w), w: lp.w});
+  });
+  if (labels.length === 2 && Math.abs(labels[0].y - labels[1].y) < 16){ const [a,b] = labels[0].y < labels[1].y ? labels : [labels[1],labels[0]]; const mid = (a.y+b.y)/2; a.y = mid-8; b.y = mid+8; }
+  labels.forEach(l => { svg += `<text x="${l.x+9}" y="${l.y+4}" font-size="12.5" font-weight="600" fill="var(--${l.id})" font-family="var(--mono)">${fmt(l.w)}</text>`; });
+  svg += '</svg>';
+  $('chart').innerHTML = svg;
+}
+
+/* ---------- log grid ---------- */
+function renderGrid(){
+  const gs = add(START, -START.getDay()), ge = add(END, 6 - END.getDay());
+  const t = today();
+  let h = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(s => `<div class="gh">${s}</div>`).join('') + '<div class="gh">Weigh-in</div>';
+  for (let ws = gs; ws <= ge; ws = add(ws, 7)){
+    const weighDays = [];
+    for (let i = 0; i < 7; i++){
+      const d = add(ws, i), k = key(d);
+      if (!inRange(d)){ h += `<div class="cell out" aria-hidden="true"><span class="dn">${d.getDate()===1||+d===+add(END,1)?short(d):d.getDate()}</span></div>`; continue; }
+      if (isWeighDay(d)) weighDays.push(k);
+      const fut = d > t;
+      const cls = ['cell', fut?'future':'', +d===+t?'today':'', k===state.sel?'sel':''].join(' ');
+      const mo = d.getDate() === 1 || +d === +START;
+      const marks = PEOPLE.map(({id}) => { const c = ci(id,k); return `<span class="mk ${id}"><i class="l ${c.lift?'on':''}"></i><i class="c ${c.cardio?'on':''}"></i></span>`; }).join('');
+      const lab = `${WD[d.getDay()]} ${short(d)}: ` + PEOPLE.map(({id,name}) => { const c = ci(id,k); return `${name} ${c.lift?'lifted':''}${c.lift&&c.cardio?' and ':''}${c.cardio?'did cardio':''}${!c.lift&&!c.cardio?'no check-in':''}`; }).join(', ');
+      h += `<button type="button" class="${cls}" data-k="${k}" ${fut?'disabled':''} aria-label="${lab}"><span class="dn ${mo?'mo':''}">${mo?short(d):d.getDate()}</span>${marks}</button>`;
+    }
+    const wv = PEOPLE.map(({id}) => { let v = null; weighDays.forEach(k => { const w = wi(id,k); if (w) v = w.weight; }); return v; });
+    h += `<div class="wcell">${weighDays.length ? PEOPLE.map(({id},i) => wv[i]!==null ? `<span class="${id[0]}">${fmt(wv[i])}</span>` : `<span class="e">—</span>`).join('') : ''}</div>`;
+  }
+  $('grid').innerHTML = h;
+}
+
+function render(){ renderHeader(); renderCheckin(); renderBoard(); renderChart(); renderGrid(); }
+
+/* ---------- events ---------- */
+function setMe(p){ me = p; try { localStorage.setItem('rta-me', p); } catch(e) {} render(); }
+$('whoHunter').onclick = () => setMe('hunter');
+$('whoChance').onclick = () => setMe('chance');
+$('prevDay').onclick = () => { state.sel = key(clampDay(add(parse(state.sel), -1))); render(); };
+$('nextDay').onclick = () => { const n = add(parse(state.sel), 1); if (n <= lastAllowed()){ state.sel = key(n); render(); } };
+$('goToday').onclick = () => { state.sel = key(clampDay(today())); render(); };
+$('togLift').onclick = () => { if (!readOnly) saveCheckin(me, state.sel, {lift: !ci(me, state.sel).lift}); };
+$('togCardio').onclick = () => { if (!readOnly) saveCheckin(me, state.sel, {cardio: !ci(me, state.sel).cardio}); };
+let noteTimer = null, notePending = null;
+function flushNote(){
+  clearTimeout(noteTimer); noteTimer = null;
+  if (!notePending) return;
+  const {p, date, v} = notePending; notePending = null;
+  if (!readOnly && v !== (ci(p, date).note || '')) saveCheckin(p, date, {note: v});
+}
+$('noteIn').addEventListener('input', e => {
+  notePending = {p: me, date: state.sel, v: e.target.value.trim().slice(0, 500)};
+  status('Typing…');
+  clearTimeout(noteTimer); noteTimer = setTimeout(flushNote, 1000);
+});
+$('noteIn').addEventListener('blur', flushNote);
+window.addEventListener('pagehide', flushNote);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushNote(); });
+['whoHunter','whoChance','prevDay','nextDay','goToday'].forEach(id => $(id).addEventListener('pointerdown', flushNote));
+$('grid').addEventListener('pointerdown', flushNote);
+$('weightIn').addEventListener('change', e => {
+  const raw = e.target.value.trim();
+  if (raw === ''){ if (wi(me, state.sel)) saveWeight(me, state.sel, null); return; }
+  const v = Math.round(parseFloat(raw)*10)/10;
+  if (!isFinite(v) || v < 50 || v > 600){ status('Enter a weight between 50 and 600 lbs.', true); return; }
+  saveWeight(me, state.sel, v);
+});
+PEOPLE.forEach(({id}) => ['start','goal'].forEach(f => {
+  $(`set_${id}_${f}`).addEventListener('change', e => {
+    const raw = e.target.value.trim();
+    if (raw === '') return saveSetting(id, f, null);
+    const v = Math.round(parseFloat(raw)*10)/10;
+    if (!isFinite(v) || v < 50 || v > 600){ status('Enter a weight between 50 and 600 lbs.', true); return; }
+    saveSetting(id, f, v);
+  });
+}));
+$('grid').addEventListener('click', e => {
+  const b = e.target.closest('button.cell'); if (!b || b.disabled) return;
+  state.sel = b.dataset.k; render();
+  if (window.innerWidth < 820) $('checkin').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+});
+let lastDay = key(today());
+setInterval(() => { const k = key(today()); if (k !== lastDay){ if (state.sel === lastDay) state.sel = key(clampDay(today())); lastDay = k; render(); } }, 60000);
+
+render();
+
+/* ---------- Firebase sync ---------- */
+const cfg = window.FIREBASE_CONFIG || {};
+if (!window.firebase || !cfg.apiKey || cfg.apiKey.indexOf('PASTE') === 0){
+  $('setup').hidden = false;
+  if (!window.firebase && cfg.apiKey && cfg.apiKey.indexOf('PASTE') !== 0) $('setup').querySelector('p').textContent = 'Couldn’t load Firebase. Check your internet connection and reload.';
+  return;
+}
+firebase.initializeApp(cfg);
+const auth = firebase.auth(), fs = firebase.firestore();
+let unsubs = [], timer = null;
+function stopSync(){ unsubs.forEach(u => u()); unsubs = []; clearTimeout(timer); db = null; state.checkins = {}; state.weighins = {}; state.settings = {}; readOnly = false; }
+function startSync(){
+  stopSync(); db = fs; render();
+  status('Loading your log…');
+  const fresh = {checkins:false, weighins:false, settings:false};
+  timer = setTimeout(() => { if (!Object.values(fresh).every(Boolean)) status('Can’t reach your saved log yet. What you see may be out of date.', true); }, 10000);
+  const onErr = e => { clearTimeout(timer);
+    if (e && e.code === 'permission-denied'){ readOnly = true; status('This account can’t read the log. Add its email to the Firestore rules.', true); render(); }
+    else status('Lost the connection to your saved log. Reload the page to reconnect.', true); };
+  ['checkins','weighins','settings'].forEach(col => {
+    unsubs.push(fs.collection(col).onSnapshot({includeMetadataChanges:true}, snap => {
+      const m = {}; snap.docs.forEach(d => { if (d.exists) m[d.id] = d.data(); });
+      state[col] = m;
+      if (!snap.metadata.fromCache && !fresh[col]){ fresh[col] = true; if (Object.values(fresh).every(Boolean)){ clearTimeout(timer); status(''); } }
+      render();
+    }, onErr));
+  });
+}
+auth.onAuthStateChanged(u => {
+  if (u){ $('gate').hidden = true; $('acctEmail').textContent = 'Signed in as ' + u.email; $('signOut').hidden = false; startSync(); }
+  else { stopSync(); render(); $('gate').hidden = false; $('acctEmail').textContent = ''; $('signOut').hidden = true; status(''); }
+});
+$('signOut').onclick = () => { flushNote(); auth.signOut(); };
+$('loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const email = $('loginEmail').value.trim(), pass = $('loginPass').value;
+  if (!email || !pass){ $('loginErr').textContent = 'Enter your email and password.'; return; }
+  $('loginBtn').disabled = true; $('loginBtn').textContent = 'Signing in…'; $('loginErr').textContent = '';
+  auth.signInWithEmailAndPassword(email, pass).catch(err => {
+    const c = err && err.code;
+    $('loginErr').textContent = c === 'auth/too-many-requests' ? 'Too many tries. Wait a few minutes and try again.'
+      : c === 'auth/network-request-failed' ? 'No connection. Check your internet and try again.'
+      : c === 'auth/invalid-email' ? 'That email address doesn’t look right.'
+      : 'Email or password is wrong.';
+  }).finally(() => { $('loginBtn').disabled = false; $('loginBtn').textContent = 'Sign in'; });
+});
+})();
+</script>
+
+</body>
+</html>
